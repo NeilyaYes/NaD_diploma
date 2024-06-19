@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+    <title>Network Anomaly Detection</title>
+</head>
+<body>
+    <section class="bg-dark text-white">
+        <div class="container p-3">
+            <h1 class="text-center">
+                Network Anomaly Detection
+            </h1>
+        </div>
+    </section>
+    <section class="pt-3 pb-3">
+        <div class="container">
+            <div class="row">
+                {% if flag %}
+                <p class="lead pb-3"><strong>Here are the results generated:</strong></p>
+                <div class="col-12">
+                    <h4>Summary</h4>
+                    <p>
+                    {% set anomalies_detected = False %}
+                    {% set kmeans_metrics = evaluations.kmeans.split('\n') if evaluations.kmeans else [] %}
+                    {% set gaussian_metrics = evaluations.gaussian.split('\n') if evaluations.gaussian else [] %}
+                    {% set isoforest_metrics = evaluations.isoforest.split('\n') if evaluations.isoforest else [] %}
+                    {% set unsupKNN_metrics = evaluations.unsupKNN.split('\n') if evaluations.unsupKNN else [] %}
+                    {% if (kmeans_metrics|length > 1 and kmeans_metrics[1].split(': ')[1] != 'N/A') or
+                          (gaussian_metrics|length > 1 and gaussian_metrics[1].split(': ')[1] != 'N/A') or
+                          (isoforest_metrics|length > 1 and isoforest_metrics[1].split(': ')[1] != 'N/A') or
+                          (unsupKNN_metrics|length > 1 and unsupKNN_metrics[1].split(': ')[1] != 'N/A') %}
+                        {% set anomalies_detected = True %}
+                    {% endif %}
+                    {% if anomalies_detected %}
+                    <strong>Note:</strong> Anomalies were detected in the dataset. The metrics shown below are accurate representations of the model performance.
+                    <p>Recommendations:</p>
+                    <ul>
+                        <li>Investigate the identified anomalies to understand the underlying causes.</li>
+                        <li>Fine-tune the parameters of the detection algorithms to improve their accuracy.</li>
+                        <li>Apply feature scaling methods or dimensionality reduction techniques to enhance the clustering performance.</li>
+                        <li>Consider using additional anomaly detection methods to cross-validate the results.</li>
+                    </ul>
+                    {% else %}
+                    <strong>Note:</strong> No anomalies were detected in the dataset. The metrics shown below are accurate representations of the model performance.
+                    {% endif %}
+                    </p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-lg-3">
+                    <h4>K-Means Clustering Algorithm</h4>
+                    <img src='/static/image/kmeans_plot.png' id="kmeans" class="img-fluid" />
+                    <table class="table">
+                        <tr><th>Metric</th><th>Score</th></tr>
+                        <tr>
+                            <td>Silhouette Score</td>
+                            <td>{% if evaluations.kmeans and '\n' in evaluations.kmeans %}{{ evaluations.kmeans.split('\n')[1].split(': ')[1] }}{% else %}N/A{% endif %}</td>
+                        </tr>
+                        <tr>
+                            <td>Calinski-Harabasz Index</td>
+                            <td>{% if evaluations.kmeans and '\n' in evaluations.kmeans %}{{ evaluations.kmeans.split('\n')[2].split(': ')[1] }}{% else %}N/A{% endif %}</td>
+                        </tr>
+                        <tr>
+                            <td>Davies-Bouldin Index</td>
+                            <td>{% if evaluations.kmeans and '\n' in evaluations.kmeans %}{{ evaluations.kmeans.split('\n')[3].split(': ')[1] }}{% else %}N/A{% endif %}</td>
+                        </tr>
+                    </table>
+                    <h5>Anomalies</h5>
+                    <ul>
+                        {% for row in anomalies.kmeans %}
+                        {% if row.anomaly_kmeans == 1 %}
+                        <li>Timestamp: {{ row.timestamp }}, Value: {{ row.value }}</li>
+                        {% endif %}
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div class="col-lg-3">
+                    <h4>Gaussian Mixture Model</h4>
+                    <img src='/static/image/gaussian.png' id="gauss" class="img-fluid" />
+                    <table class="table">
+                        <tr><th>Metric</th><th>Score</th></tr>
+                    <tr><td>Silhouette Score</td><td>{{ evaluations.gaussian.split('\n')[1].split(': ')[1] if '\n' in evaluations.gaussian else 'N/A' }}</td></tr>
+                    <tr><td>Calinski-Harabasz Index</td><td>{{ evaluations.gaussian.split('\n')[2].split(': ')[1] if '\n' in evaluations.gaussian else 'N/A' }}</td></tr>
+                    <tr><td>Davies-Bouldin Index</td><td>{{ evaluations.gaussian.split('\n')[3].split(': ')[1] if '\n' in evaluations.gaussian else 'N/A' }}</td></tr>
+                    </table>
+                    <h5>Anomalies</h5>
+                    <ul>
+                        {% for row in anomalies.gaussian %}
+                        {% if row.anomaly_gaussian == 1 %}
+                        <li>Timestamp: {{ row.timestamp }}, Value: {{ row.value }}</li>
+                        {% endif %}
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div class="col-lg-3">
+                    <h4>Isolation Forest Algorithm</h4>
+                    <img src='/static/image/isoForest.png' id="iso" class="img-fluid" />
+                    <table class="table">
+                        <tr><th>Metric</th><th>Score</th></tr>
+                    <tr><td>Silhouette Score</td><td>{{ evaluations.isoforest.split('\n')[1].split(': ')[1] if evaluations.isoforest.count('\n') >= 1 else 'N/A' }}</td></tr>
+                    <tr><td>Calinski-Harabasz Index</td><td>{{ evaluations.isoforest.split('\n')[2].split(': ')[1] if evaluations.isoforest.count('\n') >= 2 else 'N/A' }}</td></tr>
+                    <tr><td>Davies-Bouldin Index</td><td>{{ evaluations.isoforest.split('\n')[3].split(': ')[1] if evaluations.isoforest.count('\n') >= 3 else 'N/A' }}</td></tr>
+                    </table>
+                    <h5>Anomalies</h5>
+                    <ul>
+                        {% for row in anomalies.isoforest %}
+                        {% if row.anomaly_isolationForest == 1 %}
+                        <li>Timestamp: {{ row.timestamp }}, Value: {{ row.value }}</li>
+                        {% endif %}
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div class="col-lg-3">
+                    <h4>Unsupervised Nearest Neighbors</h4>
+                    <img src='/static/image/unsupKNN.png' id="knn" class="img-fluid" />
+                    <table class="table">
+                        <tr><th>Metric</th><th>Score</th></tr>
+                        <tr>
+                            <td>Silhouette Score</td>
+                            <td>{% set unsupKNN_eval = evaluations.unsupKNN.split('\n') if evaluations.unsupKNN else [] %}
+                                {{ unsupKNN_eval[1].split(': ')[1] if unsupKNN_eval|length > 1 else 'N/A' }}</td>
+                        </tr>
+                        <tr>
+                            <td>Calinski-Harabasz Index</td>
+                            <td>{{ unsupKNN_eval[2].split(': ')[1] if unsupKNN_eval|length > 2 else 'N/A' }}</td>
+                        </tr>
+                        <tr>
+                            <td>Davies-Bouldin Index</td>
+                            <td>{{ unsupKNN_eval[3].split(': ')[1] if unsupKNN_eval|length > 3 else 'N/A' }}</td>
+                        </tr>
+                    </table>
+                    <h5>Anomalies</h5>
+                    <ul>
+                        {% for row in anomalies.unsupKNN %}
+                        {% if row.anomaly_unsupKNN == 1 %}
+                        <li>Timestamp: {{ row.timestamp }}, Value: {{ row.value }}</li>
+                        {% endif %}
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+                <div class="row mt-4">
+                <div class="col-12 text-end">
+                    <a href="/" class="btn btn-outline-dark mt-3">Go Back</a>
+            </div>
+        </div>
+        </div>
+    </section>
+</body>
+</html>
